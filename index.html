@@ -1,0 +1,1307 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Skarida Green Tech - SMK Negeri 2 Tegalsari</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Font Awesome CDN -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- html2pdf.js CDN untuk Ekspor PDF -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
+    body { font-family: 'Plus Jakarta Sans', sans-serif; }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-800 antialiased min-h-screen flex flex-col">
+
+  <!-- ================= NAVBAR ================= -->
+  <header class="bg-white border-b border-slate-200 sticky top-0 z-40 shadow-sm">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
+      
+      <!-- Logo & Nama Sekolah -->
+      <div class="flex items-center gap-3">
+        <img src="big_logo_2.png" alt="Logo SMK Negeri 2 Tegalsari" class="w-12 h-12 object-contain" onerror="this.src='big_logo.png'; this.onerror=function(){this.src='https://placehold.co/100x100/0284c7/ffffff?text=SMKN+2';}">
+        <div>
+          <span class="text-lg sm:text-xl font-extrabold tracking-tight text-emerald-800 flex items-center gap-1.5">
+            SKARIDA GREEN TECH
+            <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800">TOGA</span>
+          </span>
+          <p class="text-xs font-semibold text-slate-500">SMK Negeri 2 Tegalsari - Banyuwangi</p>
+        </div>
+      </div>
+
+      <!-- Navigasi Akun & Aksi -->
+      <div class="flex items-center gap-2 sm:gap-3">
+        <!-- Status Indikator Database -->
+        <div id="sync-status" class="hidden lg:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-[11px] font-semibold bg-slate-100 text-slate-600 border border-slate-200">
+          <i class="fa-solid fa-cloud-arrow-down"></i>
+          <span>Mode Lokal</span>
+        </div>
+
+        <!-- Indikator User Aktif (Tampil Saat Sudah Login) -->
+        <div id="user-info-badge" class="hidden sm:flex items-center gap-2 bg-slate-100 px-3 py-1.5 rounded-xl border border-slate-200">
+          <i class="fa-solid fa-circle-user text-slate-500 text-sm"></i>
+          <span id="user-display-name" class="text-xs font-bold text-slate-800">Nama Pengguna</span>
+          <span id="user-display-role" class="text-[10px] font-bold px-2 py-0.5 rounded-md bg-emerald-600 text-white">Siswa</span>
+        </div>
+
+        <!-- Tombol Tambah Tanaman (Hanya jika Login Siswa/Admin) -->
+        <button id="btn-add-plant" onclick="requireAuth(openAddPlantModal)" class="hidden inline-flex items-center gap-1.5 bg-emerald-700 hover:bg-emerald-800 text-white text-xs sm:text-sm font-semibold px-3.5 py-2 rounded-xl shadow-sm transition">
+          <i class="fa-solid fa-plus"></i>
+          <span>Tambah Tanaman</span>
+        </button>
+
+        <!-- Tombol Panel Admin (Hanya jika Login sebagai Admin) -->
+        <button id="btn-admin-backend" onclick="openAdminPanelModal()" class="hidden inline-flex items-center gap-1.5 bg-slate-800 hover:bg-slate-900 text-white text-xs sm:text-sm font-semibold px-3 py-2 rounded-xl shadow-sm transition">
+          <i class="fa-solid fa-sliders"></i>
+          <span class="hidden sm:inline">Panel Admin</span>
+        </button>
+
+        <!-- Tombol Masuk / Login (Tampil jika Belum Login) -->
+        <button id="btn-login-trigger" onclick="openLoginModal()" class="inline-flex items-center gap-1.5 bg-emerald-700 hover:bg-emerald-800 text-white text-xs sm:text-sm font-semibold px-4 py-2 rounded-xl shadow-sm transition">
+          <i class="fa-solid fa-right-to-bracket"></i>
+          <span>Masuk / Login</span>
+        </button>
+
+        <!-- Tombol Keluar / Logout (Tampil jika Sudah Login) -->
+        <button id="btn-logout" onclick="handleLogout()" class="hidden inline-flex items-center gap-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-xs sm:text-sm font-semibold px-3 py-2 rounded-xl transition" title="Keluar">
+          <i class="fa-solid fa-arrow-right-from-bracket"></i>
+          <span class="hidden sm:inline">Keluar</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- ================= BANNER & FILTER ================= -->
+  <section class="bg-gradient-to-r from-emerald-900 via-teal-900 to-emerald-800 text-white py-10 px-4 shadow-inner">
+    <div class="max-w-4xl mx-auto text-center space-y-4">
+      <h1 class="text-2xl sm:text-4xl font-extrabold tracking-tight">Katalog Tanaman Obat Keluarga (TOGA)</h1>
+      <p class="text-emerald-100 text-xs sm:text-sm max-w-2xl mx-auto leading-relaxed">
+        Sistem digitalisasi botani terintegrasi untuk pencatatan dan jurnal fase pertumbuhan siswa SMK Negeri 2 Tegalsari.
+      </p>
+
+      <!-- Input Pencarian -->
+      <div class="max-w-xl mx-auto relative pt-2">
+        <div class="flex items-center bg-white rounded-2xl shadow-lg p-1.5">
+          <i class="fa-solid fa-magnifying-glass text-slate-400 pl-3 pr-2"></i>
+          <input id="search-input" oninput="filterPlants()" type="text" placeholder="Cari nama tanaman, khasiat herbal, atau lokasi..." class="w-full text-slate-800 text-xs sm:text-sm px-2 py-2 focus:outline-none">
+          <button onclick="filterPlants()" class="bg-emerald-700 text-white text-xs font-semibold px-4 py-2.5 rounded-xl hover:bg-emerald-800 transition">
+            Cari
+          </button>
+        </div>
+      </div>
+
+      <!-- Filter Cepat -->
+      <div class="flex flex-wrap items-center justify-center gap-2 pt-1 text-xs">
+        <select id="filter-location" onchange="filterPlants()" class="bg-emerald-800/90 text-white text-xs rounded-xl px-3 py-1.5 border border-emerald-600 focus:outline-none">
+          <option value="">Semua Lokasi Kebun</option>
+        </select>
+        <select id="filter-phase" onchange="filterPlants()" class="bg-emerald-800/90 text-white text-xs rounded-xl px-3 py-1.5 border border-emerald-600 focus:outline-none">
+          <option value="">Semua Fase Tumbuh</option>
+          <option value="Pembibitan/Semai">Pembibitan/Semai</option>
+          <option value="Fase Vegetatif">Fase Vegetatif</option>
+          <option value="Fase Berbunga">Fase Berbunga</option>
+          <option value="Fase Siap Panen">Fase Siap Panen</option>
+        </select>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= GRID DAFTAR TANAMAN ================= -->
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-1 w-full">
+    <div class="flex items-center justify-between mb-6">
+      <div>
+        <h2 class="text-lg font-bold text-slate-900">Koleksi Tanaman Kebun Sekolah</h2>
+        <p class="text-xs text-slate-500" id="total-tanaman-info">Sinkronisasi data koleksi...</p>
+      </div>
+      <button onclick="loadDataFromSpreadsheet()" class="text-xs font-semibold text-emerald-700 hover:text-emerald-800 bg-emerald-50 hover:bg-emerald-100 px-3 py-1.5 rounded-xl transition inline-flex items-center gap-1.5">
+        <i class="fa-solid fa-rotate"></i> Segarkan Data
+      </button>
+    </div>
+
+    <!-- Grid Kartu -->
+    <div id="plants-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"></div>
+  </main>
+
+  <!-- ================= MODAL: LOGIN / MASUK SISTEM ================= -->
+  <div id="login-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4 overflow-y-auto">
+    <div class="bg-white rounded-3xl max-w-md w-full shadow-2xl border border-slate-100 p-6 space-y-5 my-auto">
+      
+      <!-- Header Login -->
+      <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+        <div class="flex items-center gap-3">
+          <img src="big_logo_2.png" alt="Logo" class="w-10 h-10 object-contain" onerror="this.src='big_logo.png';">
+          <div>
+            <h3 class="font-extrabold text-slate-900 text-base">Masuk Akun</h3>
+            <p class="text-[11px] text-emerald-700 font-semibold">Skarida Green Tech</p>
+          </div>
+        </div>
+        <button onclick="closeLoginModal()" class="text-slate-400 hover:text-slate-600 text-lg p-1 rounded-lg">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <!-- Keterangan Keamanan -->
+      <div class="bg-emerald-50 text-emerald-800 p-3 rounded-2xl text-xs leading-relaxed border border-emerald-200">
+        <i class="fa-solid fa-shield-halved mr-1 text-emerald-700"></i>
+        Untuk menambah, mengupdate, atau menghapus data tanaman, silakan masuk menggunakan akun <strong>Siswa</strong> atau <strong>Admin</strong>.
+      </div>
+
+      <!-- Form Login -->
+      <form onsubmit="handleLoginSubmit(event)" class="space-y-4">
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1">Username / NIS</label>
+          <div class="relative">
+            <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400 text-xs">
+              <i class="fa-solid fa-user"></i>
+            </span>
+            <input type="text" id="login-username" required placeholder="Masukkan username" class="w-full text-xs pl-9 pr-3 py-2.5 rounded-xl border border-slate-200 focus:ring-2 focus:ring-emerald-600 focus:outline-none">
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1">Kata Sandi (Password)</label>
+          <div class="relative">
+            <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400 text-xs">
+              <i class="fa-solid fa-lock"></i>
+            </span>
+            <input type="password" id="login-password" required placeholder="Masukkan password" class="w-full text-xs pl-9 pr-3 py-2.5 rounded-xl border border-slate-200 focus:ring-2 focus:ring-emerald-600 focus:outline-none">
+          </div>
+        </div>
+
+        <div id="login-error" class="hidden text-xs text-rose-600 bg-rose-50 p-2.5 rounded-xl border border-rose-200 flex items-center gap-1.5">
+          <i class="fa-solid fa-circle-exclamation"></i>
+          <span id="login-error-text">Username atau password salah!</span>
+        </div>
+
+        <button type="submit" class="w-full bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold py-2.5 rounded-xl shadow-sm transition flex items-center justify-center gap-2">
+          <i class="fa-solid fa-right-to-bracket"></i> Masuk Sekarang
+        </button>
+      </form>
+
+      <!-- Informasi Akun Bawaan (Demo) -->
+      <div class="pt-2 border-t border-slate-100 text-[11px] text-slate-400 space-y-1">
+        <p class="font-semibold text-slate-500">Akun Tersedia:</p>
+        <div class="bg-slate-50 p-2.5 rounded-xl border border-slate-200 space-y-1 font-mono text-[10px] text-slate-600">
+          <div>• Siswa: <strong class="text-slate-800">siswa1</strong> / sandi: <strong class="text-slate-800">siswa123</strong></div>
+          <div>• Admin: <strong class="text-slate-800">admin</strong> / sandi: <strong class="text-slate-800">admin123</strong></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= MODAL: LIHAT DETAIL TANAMAN (TANPA NOMOR) ================= -->
+  <div id="detail-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
+    <div class="bg-white rounded-3xl max-w-3xl w-full max-h-[92vh] overflow-y-auto shadow-2xl border border-slate-100 flex flex-col my-auto">
+      
+      <!-- Header Modal dengan Logo Sekolah -->
+      <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between sticky top-0 bg-white z-10">
+        <div class="flex items-center gap-3">
+          <img src="big_logo_2.png" alt="Logo" class="w-9 h-9 object-contain" onerror="this.src='big_logo.png';">
+          <div>
+            <h3 class="font-bold text-slate-900 text-sm sm:text-base">SMK NEGERI 2 TEGALSARI</h3>
+            <p class="text-[11px] text-emerald-700 font-semibold">Skarida Green Tech • Detail Koleksi TOGA</p>
+          </div>
+        </div>
+        <button onclick="closeDetailModal()" class="text-slate-400 hover:text-slate-600 text-lg p-1.5 rounded-lg hover:bg-slate-100">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <!-- Body Modal -->
+      <div class="p-6 space-y-6 flex-1" id="detail-modal-body"></div>
+    </div>
+  </div>
+
+  <!-- ================= MODAL: INPUT / UPDATE DATA TANAMAN ================= -->
+  <div id="plant-form-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
+    <div class="bg-white rounded-3xl max-w-2xl w-full max-h-[92vh] overflow-y-auto shadow-2xl border border-slate-100 flex flex-col my-auto">
+      <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between sticky top-0 bg-white z-10">
+        <h3 id="form-modal-title" class="font-bold text-slate-800 text-base sm:text-lg">Entri Data Tanaman TOGA</h3>
+        <button onclick="closePlantFormModal()" class="text-slate-400 hover:text-slate-600 text-lg p-1.5 rounded-lg hover:bg-slate-100">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <form id="plant-form" onsubmit="handlePlantSubmit(event)" class="p-6 space-y-4">
+        <input type="hidden" id="form-plant-id">
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">Nama Tanaman *</label>
+            <input type="text" id="form-name" required placeholder="Contoh: Jahe Merah" class="w-full text-xs sm:text-sm px-3 py-2 rounded-xl border border-slate-200 focus:ring-2 focus:ring-emerald-600 focus:outline-none">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">Nama Latin Tanaman *</label>
+            <input type="text" id="form-latin" required placeholder="Contoh: Zingiber officinale" class="w-full text-xs sm:text-sm px-3 py-2 rounded-xl border border-slate-200 focus:ring-2 focus:ring-emerald-600 focus:outline-none italic">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">Nama Lainnya / Daerah</label>
+            <input type="text" id="form-other-names" placeholder="Contoh: Jahe Sunti, Halia Bara" class="w-full text-xs sm:text-sm px-3 py-2 rounded-xl border border-slate-200 focus:ring-2 focus:ring-emerald-600 focus:outline-none">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">Foto Tanaman (File / Kamera HP) *</label>
+            <input type="file" id="form-photo-file" accept="image/*" capture="environment" onchange="previewImage(this, 'form-photo-preview')" class="w-full text-xs text-slate-500 file:mr-2 file:py-1.5 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-emerald-100 file:text-emerald-800 hover:file:bg-emerald-200">
+            <input type="hidden" id="form-photo-base64">
+            <div id="form-photo-preview" class="mt-2 hidden">
+              <img src="" class="h-20 w-28 object-cover rounded-xl border border-slate-200">
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1">Karakteristik Tanaman *</label>
+          <textarea id="form-characteristics" required rows="2" placeholder="Uraikan morfologi fisik, bentuk daun, batang semu, tinggi tanaman..." class="w-full text-xs sm:text-sm px-3 py-2 rounded-xl border border-slate-200 focus:ring-2 focus:ring-emerald-600 focus:outline-none"></textarea>
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1">Manfaat Tanaman *</label>
+          <textarea id="form-benefits" required rows="2" placeholder="Uraikan khasiat herbal, fungsi obat keluarga, dan kandungan alami..." class="w-full text-xs sm:text-sm px-3 py-2 rounded-xl border border-slate-200 focus:ring-2 focus:ring-emerald-600 focus:outline-none"></textarea>
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1">Cara Perawatan Tanaman *</label>
+          <textarea id="form-care" required rows="2" placeholder="Jadwal penyiraman harian, pemupukan organik kompos, kebutuhan cahaya..." class="w-full text-xs sm:text-sm px-3 py-2 rounded-xl border border-slate-200 focus:ring-2 focus:ring-emerald-600 focus:outline-none"></textarea>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">Fase Pertumbuhan *</label>
+            <select id="form-phase" required class="w-full text-xs sm:text-sm px-3 py-2 rounded-xl border border-slate-200 focus:ring-2 focus:ring-emerald-600 focus:outline-none">
+              <option value="Pembibitan/Semai">Pembibitan/Semai</option>
+              <option value="Fase Vegetatif">Fase Vegetatif</option>
+              <option value="Fase Berbunga">Fase Berbunga</option>
+              <option value="Fase Siap Panen">Fase Siap Panen</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">Lokasi Penanaman *</label>
+            <select id="form-location" required class="w-full text-xs sm:text-sm px-3 py-2 rounded-xl border border-slate-200 focus:ring-2 focus:ring-emerald-600 focus:outline-none"></select>
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">Tanggal Penanaman *</label>
+            <input type="date" id="form-date" required class="w-full text-xs sm:text-sm px-3 py-2 rounded-xl border border-slate-200 focus:ring-2 focus:ring-emerald-600 focus:outline-none">
+          </div>
+        </div>
+
+        <div class="pt-4 flex justify-end gap-2 border-t border-slate-100">
+          <button type="button" onclick="closePlantFormModal()" class="px-4 py-2 text-xs font-semibold rounded-xl text-slate-600 hover:bg-slate-100">Batal</button>
+          <button type="submit" id="btn-save-plant" class="px-5 py-2 text-xs font-semibold rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white">Simpan Data Tanaman</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ================= MODAL: ADMIN PANEL ================= -->
+  <div id="admin-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
+    <div class="bg-white rounded-3xl max-w-3xl w-full max-h-[92vh] overflow-y-auto shadow-2xl border border-slate-100 p-6 space-y-6 my-auto">
+      <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+        <h3 class="font-bold text-slate-900 text-base sm:text-lg flex items-center gap-2">
+          <i class="fa-solid fa-sliders text-emerald-700"></i> Panel Manajemen Backend Admin
+        </h3>
+        <button onclick="closeAdminPanelModal()" class="text-slate-400 hover:text-slate-600 text-lg"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+
+      <!-- Konfigurasi URL Google Apps Script -->
+      <div class="bg-emerald-50 border border-emerald-200 p-4 rounded-2xl space-y-2">
+        <h4 class="text-xs font-bold text-emerald-950 uppercase tracking-wider flex items-center gap-1.5">
+          <i class="fa-solid fa-table text-emerald-700"></i> Integrasi Google Spreadsheet (Database)
+        </h4>
+        <p class="text-[11px] text-emerald-800">Masukkan URL Web App hasil deploy Google Apps Script untuk menghubungkan website dengan Spreadsheet secara langsung.</p>
+        <div class="flex gap-2">
+          <input type="url" id="config-api-url" placeholder="https://script.google.com/macros/s/AKfycb.../exec" class="flex-1 text-xs px-3 py-2 rounded-xl border border-emerald-300 focus:outline-none bg-white">
+          <button onclick="saveApiUrlConfig()" class="bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-semibold px-4 py-2 rounded-xl transition">
+            Simpan URL
+          </button>
+        </div>
+      </div>
+
+      <!-- Kelola Lokasi Kebun -->
+      <div class="bg-slate-50 p-4 rounded-2xl border border-slate-200 space-y-3">
+        <h4 class="text-xs font-bold uppercase tracking-wider text-slate-700">Kelola Lokasi Penanaman Kebun</h4>
+        <div class="flex gap-2">
+          <input type="text" id="new-location-input" placeholder="Nama area baru (misal: Greenhouse Selatan)" class="flex-1 text-xs px-3 py-2 rounded-xl border border-slate-300 focus:outline-none">
+          <button onclick="addLocation()" class="bg-emerald-700 text-white px-3.5 py-2 text-xs font-semibold rounded-xl hover:bg-emerald-800">Tambah</button>
+        </div>
+        <div id="admin-locations-list" class="flex flex-wrap gap-2 pt-1"></div>
+      </div>
+
+      <!-- Kelola Pengguna & Password -->
+      <div class="bg-slate-50 p-4 rounded-2xl border border-slate-200 space-y-3">
+        <h4 class="text-xs font-bold uppercase tracking-wider text-slate-700">Kelola Akun Pengguna & Password</h4>
+        <div class="grid grid-cols-1 sm:grid-cols-4 gap-2">
+          <input type="text" id="new-user-name" placeholder="Nama Lengkap" class="text-xs px-3 py-2 rounded-xl border border-slate-300 focus:outline-none">
+          <input type="text" id="new-user-username" placeholder="Username / NIS" class="text-xs px-3 py-2 rounded-xl border border-slate-300 focus:outline-none">
+          <input type="password" id="new-user-password" placeholder="Password" class="text-xs px-3 py-2 rounded-xl border border-slate-300 focus:outline-none">
+          <select id="new-user-role" class="text-xs px-3 py-2 rounded-xl border border-slate-300 focus:outline-none">
+            <option value="Siswa">Siswa</option>
+            <option value="Admin">Admin</option>
+          </select>
+        </div>
+        <button onclick="addUser()" class="bg-slate-800 text-white px-4 py-2 text-xs font-semibold rounded-xl hover:bg-slate-900">Tambah Akun</button>
+
+        <div class="overflow-x-auto pt-2">
+          <table class="w-full text-left text-xs border border-slate-200 rounded-xl overflow-hidden bg-white">
+            <thead class="bg-slate-100 text-slate-700 font-semibold">
+              <tr>
+                <th class="p-2.5">Nama</th>
+                <th class="p-2.5">Username</th>
+                <th class="p-2.5">Peran</th>
+                <th class="p-2.5">Tindakan</th>
+              </tr>
+            </thead>
+            <tbody id="admin-users-table" class="divide-y divide-slate-100"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= TEMPLATE EKSPOR PDF (RESMI TANPA KOP DINAS) ================= -->
+  <div id="pdf-container" class="hidden">
+    <div id="pdf-content" style="padding: 24px; font-family: sans-serif; color: #1e293b; background: #ffffff;">
+      
+      <!-- HEADER PDF: HANYA LOGO SEKOLAH & NAMA SEKOLAH -->
+      <div style="display: flex; align-items: center; gap: 14px; border-bottom: 2px solid #059669; padding-bottom: 12px; margin-bottom: 16px;">
+        <img src="big_logo_2.png" alt="Logo" style="width: 52px; height: 52px; object-fit: contain;" onerror="this.src='big_logo.png';">
+        <div>
+          <h1 style="font-size: 16px; font-weight: 800; color: #0284c7; margin: 0; text-transform: uppercase;">SMK NEGERI 2 TEGALSARI</h1>
+          <p style="font-size: 11px; color: #059669; margin: 2px 0 0; font-weight: 700;">Skarida Green Tech • Lembar Data Tanaman TOGA</p>
+        </div>
+      </div>
+
+      <!-- Ringkasan Identitas Tanaman Tanpa Angka -->
+      <table style="width: 100%; border-collapse: collapse; margin-bottom: 14px; font-size: 10.5px;">
+        <tr>
+          <td style="width: 62%; vertical-align: top; padding-right: 14px;">
+            <table style="width: 100%; border-collapse: collapse;">
+              <tr>
+                <td style="padding: 3px 0; font-weight: bold; width: 38%; color: #475569;">Nama Tanaman</td>
+                <td style="padding: 3px 0;">: <span id="pdf-name" style="font-weight: bold; color: #065f46; font-size: 12px;"></span></td>
+              </tr>
+              <tr>
+                <td style="padding: 3px 0; font-weight: bold; color: #475569;">Nama Latin</td>
+                <td style="padding: 3px 0;">: <em id="pdf-latin" style="color: #047857;"></em></td>
+              </tr>
+              <tr>
+                <td style="padding: 3px 0; font-weight: bold; color: #475569;">Nama Lainnya</td>
+                <td style="padding: 3px 0;">: <span id="pdf-other"></span></td>
+              </tr>
+              <tr>
+                <td style="padding: 3px 0; font-weight: bold; color: #475569;">Fase Pertumbuhan</td>
+                <td style="padding: 3px 0;">: <strong id="pdf-phase" style="color: #059669;"></strong></td>
+              </tr>
+              <tr>
+                <td style="padding: 3px 0; font-weight: bold; color: #475569;">Lokasi Penanaman</td>
+                <td style="padding: 3px 0;">: <span id="pdf-location"></span></td>
+              </tr>
+              <tr>
+                <td style="padding: 3px 0; font-weight: bold; color: #475569;">Tanggal Penanaman</td>
+                <td style="padding: 3px 0;">: <span id="pdf-date"></span></td>
+              </tr>
+            </table>
+          </td>
+          <td style="width: 38%; vertical-align: top; text-align: center;">
+            <img id="pdf-photo" src="" style="width: 100%; max-height: 130px; object-fit: cover; border-radius: 8px; border: 1px solid #cbd5e1;">
+          </td>
+        </tr>
+      </table>
+
+      <!-- Karakteristik & Manfaat Terstruktur -->
+      <div style="margin-bottom: 14px; font-size: 10px; display: flex; flex-direction: column; gap: 8px;">
+        <div style="border-left: 3px solid #15803d; background: #f8fafc; padding: 8px 10px; border-radius: 4px;">
+          <strong style="color: #15803d; font-size: 10.5px;">Karakteristik & Morfologi Fisik:</strong>
+          <p id="pdf-characteristics" style="margin: 3px 0 0; line-height: 1.4; color: #334155;"></p>
+        </div>
+        <div style="border-left: 3px solid #0284c7; background: #f8fafc; padding: 8px 10px; border-radius: 4px;">
+          <strong style="color: #0284c7; font-size: 10.5px;">Khasiat & Manfaat Kesehatan Herbal:</strong>
+          <p id="pdf-benefits" style="margin: 3px 0 0; line-height: 1.4; color: #334155;"></p>
+        </div>
+        <div style="border-left: 3px solid #64748b; background: #f8fafc; padding: 8px 10px; border-radius: 4px;">
+          <strong style="color: #475569; font-size: 10.5px;">Pedoman Perawatan:</strong>
+          <p id="pdf-care" style="margin: 3px 0 0; line-height: 1.4; color: #334155;"></p>
+        </div>
+      </div>
+
+      <!-- Jurnal Fase Pertumbuhan Siswa -->
+      <div>
+        <h3 style="font-size: 11px; font-weight: bold; color: #0284c7; border-bottom: 1px solid #cbd5e1; padding-bottom: 3px; margin-bottom: 8px;">
+          Jurnal Dokumentasi Fase Pertumbuhan (Dokumentasi Siswa)
+        </h3>
+        <div id="pdf-phase-logs" style="display: flex; gap: 8px; flex-wrap: wrap;"></div>
+      </div>
+
+      <div style="margin-top: 18px; font-size: 8.5px; color: #94a3b8; text-align: right;">
+        Dokumen ini diterbitkan oleh Skarida Green Tech • SMK Negeri 2 Tegalsari
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= LOGIKA JAVASCRIPT & AUTENTIKASI ================= -->
+  <script>
+    let SPREADSHEET_API_URL = localStorage.getItem("skarida_spreadsheet_api") || "https://script.google.com/macros/s/AKfycbyf8Lj9_wxhHAULLaEkicYn_NAfAXTMnkK97ncIDqrZjun_4I-39G7uvgALpzRY-xFe/exec";
+
+    const DEFAULT_LOCATIONS = ["Kebun Depan RPS", "Kebun TOGA Barat", "Greenhouse Skarida", "Taman Belakang Sekolah"];
+    const DEFAULT_USERS = [
+      { id: 1, name: "Ahmad Fauzi", username: "siswa1", password: "siswa123", role: "Siswa" },
+      { id: 2, name: "Admin Kebun Skarida", username: "admin", password: "admin123", role: "Admin" }
+    ];
+    const DEFAULT_PLANTS = [
+      {
+        id: 1,
+        name: "Jahe Merah",
+        latin: "Zingiber officinale var. rubrum",
+        otherNames: "Jahe Sunti, Halia Bara",
+        photo: "https://images.unsplash.com/photo-1615485290382-441e4d049cb5?auto=format&fit=crop&w=600&q=80",
+        characteristics: "Batang semu bulat tegak, rimpang berwarna merah jingga dengan serat tegas dan aroma pedas menyengat. Helai daun berseling lancip dengan warna hijau gelap.",
+        benefits: "Meningkatkan daya tahan tubuh, menghangatkan pencernaan, membantu meredakan radang sendi, batuk berdahak, serta melancarkan sirkulasi peredaran darah.",
+        care: "Lakukan penyiraman berkala 1 kali setiap pagi. Bersihkan gulma di sekitar rimpang dan berikan pupuk kompos setiap 3 minggu.",
+        phase: "Fase Vegetatif",
+        location: "Kebun Depan RPS",
+        date: "2026-01-15",
+        growthLogs: [
+          {
+            id: 101,
+            phase: "Pembibitan/Semai",
+            date: "2026-01-15",
+            caption: "Penyemaian tunas rimpang perdana pada polybag kompos setinggi 3 cm.",
+            photo: "https://images.unsplash.com/photo-1592417817098-8f3d6910985b?auto=format&fit=crop&w=400&q=80",
+            author: "Ahmad Fauzi (Siswa)"
+          },
+          {
+            id: 102,
+            phase: "Fase Vegetatif",
+            date: "2026-02-28",
+            caption: "Tunas mencapai 25 cm, 6 helai daun mekar rimbun, kondisi tanaman sehat.",
+            photo: "https://images.unsplash.com/photo-1615485290382-441e4d049cb5?auto=format&fit=crop&w=400&q=80",
+            author: "Siti Nurhaliza (Siswa)"
+          }
+        ]
+      },
+      {
+        id: 2,
+        name: "Kunyit",
+        latin: "Curcuma longa",
+        otherNames: "Kunir, Turmeric",
+        photo: "https://images.unsplash.com/photo-1615485290158-b64ecf3d9b4b?auto=format&fit=crop&w=600&q=80",
+        characteristics: "Berdaun lonjong lebar dengan tangkai panjang. Rimpang bercabang berwarna jingga cerah kaya zat kurkumin alami.",
+        benefits: "Mengatasi gangguan asam lambung, anti-inflamasi alami, peningkat nafsu makan, dan bahan baku ramuan kunyit asam.",
+        care: "Memerlukan intensitas cahaya sedang, penyiraman teratur tanpa membuat tanah becek berlebih.",
+        phase: "Fase Siap Panen",
+        location: "Kebun TOGA Barat",
+        date: "2025-11-10",
+        growthLogs: []
+      },
+      {
+        id: 3,
+        name: "Lidah Buaya",
+        latin: "Aloe vera",
+        otherNames: "Aloe, Jadam",
+        photo: "https://images.unsplash.com/photo-1596547609652-9cf5d8d76921?auto=format&fit=crop&w=600&q=80",
+        characteristics: "Daun tebal sukulen berduri tumpul di tepinya, bagian dalam pelepah berisikan gel bening berkhasiat tinggi.",
+        benefits: "Meredakan luka bakar ringan, melembapkan kulit kering, merawat folikel rambut, serta antiseptik alami.",
+        care: "Media tanam porous berpasir, siram 2-3 hari sekali untuk mencegah pembusukan batang bawah.",
+        phase: "Fase Vegetatif",
+        location: "Greenhouse Skarida",
+        date: "2026-02-01",
+        growthLogs: []
+      }
+    ];
+
+    // State Pengguna Aktif (Null jika Tamu)
+    let currentUser = JSON.parse(localStorage.getItem("skarida_current_user")) || null;
+    let plants = JSON.parse(localStorage.getItem("skarida_plants")) || DEFAULT_PLANTS;
+    let locations = JSON.parse(localStorage.getItem("skarida_locations")) || DEFAULT_LOCATIONS;
+    let users = JSON.parse(localStorage.getItem("skarida_users")) || DEFAULT_USERS;
+    let activeDetailPlantId = null;
+
+    function saveDataLocally() {
+      localStorage.setItem("skarida_plants", JSON.stringify(plants));
+      localStorage.setItem("skarida_locations", JSON.stringify(locations));
+      localStorage.setItem("skarida_users", JSON.stringify(users));
+      if (currentUser) {
+        localStorage.setItem("skarida_current_user", JSON.stringify(currentUser));
+      } else {
+        localStorage.removeItem("skarida_current_user");
+      }
+    }
+
+    // ================= SISTEM AUTENTIKASI / LOGIN =================
+    function openLoginModal() {
+      document.getElementById("login-error").classList.add("hidden");
+      document.getElementById("login-username").value = "";
+      document.getElementById("login-password").value = "";
+      document.getElementById("login-modal").classList.remove("hidden");
+    }
+
+    function closeLoginModal() {
+      document.getElementById("login-modal").classList.add("hidden");
+    }
+
+    function handleLoginSubmit(e) {
+      e.preventDefault();
+      const uVal = document.getElementById("login-username").value.trim();
+      const pVal = document.getElementById("login-password").value.trim();
+
+      const matched = users.find(u => u.username.toLowerCase() === uVal.toLowerCase() && u.password === pVal);
+      
+      if (matched) {
+        currentUser = {
+          id: matched.id,
+          name: matched.name,
+          username: matched.username,
+          role: matched.role
+        };
+        saveDataLocally();
+        closeLoginModal();
+        updateAuthUI();
+        renderPlants();
+        alert(`Selamat datang, ${currentUser.name}! Anda masuk sebagai ${currentUser.role}.`);
+      } else {
+        document.getElementById("login-error-text").textContent = "Username atau kata sandi tidak cocok!";
+        document.getElementById("login-error").classList.remove("hidden");
+      }
+    }
+
+    function handleLogout() {
+      if (confirm("Apakah Anda yakin ingin keluar?")) {
+        currentUser = null;
+        saveDataLocally();
+        updateAuthUI();
+        renderPlants();
+        if (activeDetailPlantId) openDetailModal(activeDetailPlantId);
+      }
+    }
+
+    // Penjaga Akses (Guard): Wajib Login untuk Tambah, Ubah, Hapus
+    function requireAuth(callback) {
+      if (!currentUser) {
+        alert("Akses Terbatas: Anda harus login terlebih dahulu untuk menambah atau mengubah data tanaman.");
+        openLoginModal();
+        return;
+      }
+      callback();
+    }
+
+    // Memperbarui UI Sesuai Peran Aktif
+    function updateAuthUI() {
+      const userBadge = document.getElementById("user-info-badge");
+      const displayName = document.getElementById("user-display-name");
+      const displayRole = document.getElementById("user-display-role");
+      const btnAddPlant = document.getElementById("btn-add-plant");
+      const btnAdminBackend = document.getElementById("btn-admin-backend");
+      const btnLogin = document.getElementById("btn-login-trigger");
+      const btnLogout = document.getElementById("btn-logout");
+
+      if (currentUser) {
+        // Mode Terautentikasi (Siswa / Admin)
+        userBadge.classList.remove("hidden");
+        displayName.textContent = currentUser.name;
+        displayRole.textContent = currentUser.role;
+
+        if (currentUser.role === "Admin") {
+          displayRole.className = "text-[10px] font-bold px-2 py-0.5 rounded-md bg-blue-700 text-white";
+          btnAdminBackend.classList.remove("hidden");
+        } else {
+          displayRole.className = "text-[10px] font-bold px-2 py-0.5 rounded-md bg-emerald-600 text-white";
+          btnAdminBackend.classList.add("hidden");
+        }
+
+        btnAddPlant.classList.remove("hidden");
+        btnLogin.classList.add("hidden");
+        btnLogout.classList.remove("hidden");
+      } else {
+        // Mode Tamu / Publik
+        userBadge.classList.add("hidden");
+        btnAddPlant.classList.add("hidden");
+        btnAdminBackend.classList.add("hidden");
+        btnLogin.classList.remove("hidden");
+        btnLogout.classList.add("hidden");
+      }
+    }
+
+    // ================= INTEGRASI GOOGLE SPREADSHEET =================
+    async function loadDataFromSpreadsheet() {
+      const syncBadge = document.getElementById("sync-status");
+
+      if (!SPREADSHEET_API_URL || SPREADSHEET_API_URL.includes("...")) {
+        syncBadge.innerHTML = `<i class="fa-solid fa-cloud-arrow-down"></i><span>Mode Lokal</span>`;
+        syncBadge.className = "hidden lg:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-[11px] font-semibold bg-slate-100 text-slate-600 border border-slate-200";
+        renderLocationOptions();
+        renderPlants();
+        return;
+      }
+
+      syncBadge.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin"></i><span>Sinkronisasi...</span>`;
+      syncBadge.className = "hidden lg:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-[11px] font-semibold bg-amber-50 text-amber-700 border border-amber-200";
+
+      try {
+        const response = await fetch(SPREADSHEET_API_URL);
+        const data = await response.json();
+        
+        if (data.plants && data.plants.length > 0) plants = data.plants;
+        if (data.locations && data.locations.length > 0) locations = data.locations;
+        if (data.users && data.users.length > 0) users = data.users;
+
+        saveDataLocally();
+        syncBadge.innerHTML = `<i class="fa-solid fa-check"></i><span>Spreadsheet Terhubung</span>`;
+        syncBadge.className = "hidden lg:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-[11px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200";
+      } catch (err) {
+        console.warn("Gagal terhubung ke Google Sheets, menggunakan data lokal:", err);
+        syncBadge.innerHTML = `<i class="fa-solid fa-triangle-exclamation"></i><span>Mode Offline</span>`;
+        syncBadge.className = "hidden lg:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-[11px] font-semibold bg-rose-50 text-rose-700 border border-rose-200";
+      }
+
+      renderLocationOptions();
+      renderPlants();
+    }
+
+    function saveApiUrlConfig() {
+      const val = document.getElementById("config-api-url").value.trim();
+      if (val) {
+        SPREADSHEET_API_URL = val;
+        localStorage.setItem("skarida_spreadsheet_api", val);
+        alert("URL integrasi berhasil disimpan!");
+        loadDataFromSpreadsheet();
+      }
+    }
+
+    // ================= RENDER & OPERASI LOKASI =================
+    function renderLocationOptions() {
+      const formLoc = document.getElementById("form-location");
+      const filterLoc = document.getElementById("filter-location");
+      const adminList = document.getElementById("admin-locations-list");
+
+      formLoc.innerHTML = locations.map(l => `<option value="${l}">${l}</option>`).join("");
+      filterLoc.innerHTML = `<option value="">Semua Lokasi Kebun</option>` + locations.map(l => `<option value="${l}">${l}</option>`).join("");
+
+      if (adminList) {
+        adminList.innerHTML = locations.map(l => `
+          <span class="inline-flex items-center gap-1.5 text-xs bg-white px-2.5 py-1 rounded-lg border border-slate-200">
+            ${l}
+            <button onclick="removeLocation('${l}')" class="text-rose-500 hover:text-rose-700"><i class="fa-solid fa-xmark"></i></button>
+          </span>
+        `).join("");
+      }
+    }
+
+    async function addLocation() {
+      const input = document.getElementById("new-location-input");
+      const val = input.value.trim();
+      if (val && !locations.includes(val)) {
+        locations.push(val);
+        input.value = "";
+        saveDataLocally();
+        renderLocationOptions();
+
+        if (SPREADSHEET_API_URL) {
+          fetch(SPREADSHEET_API_URL, {
+            method: "POST",
+            body: JSON.stringify({ action: "addLocation", locationName: val })
+          }).catch(e => console.error(e));
+        }
+      }
+    }
+
+    function removeLocation(name) {
+      if (locations.length <= 1) {
+        alert("Minimal harus ada satu lokasi penanaman!");
+        return;
+      }
+      locations = locations.filter(l => l !== name);
+      saveDataLocally();
+      renderLocationOptions();
+      renderPlants();
+    }
+
+    // ================= RENDER & OPERASI USER (ADMIN) =================
+    function renderUsers() {
+      const tbody = document.getElementById("admin-users-table");
+      if (!tbody) return;
+      tbody.innerHTML = users.map(u => `
+        <tr class="hover:bg-slate-50">
+          <td class="p-2.5 font-medium">${u.name}</td>
+          <td class="p-2.5 text-slate-500">${u.username}</td>
+          <td class="p-2.5"><span class="px-2 py-0.5 rounded text-[10px] font-bold ${u.role === 'Admin' ? 'bg-blue-100 text-blue-700' : 'bg-emerald-100 text-emerald-700'}">${u.role}</span></td>
+          <td class="p-2.5 flex items-center gap-2">
+            <button onclick="changeUserPassword('${u.username}')" class="text-amber-600 hover:text-amber-800 text-xs" title="Ganti Password"><i class="fa-solid fa-key"></i></button>
+            ${u.username !== 'admin' ? `<button onclick="deleteUser(${u.id})" class="text-rose-600 hover:text-rose-800 text-xs" title="Hapus"><i class="fa-solid fa-trash"></i></button>` : ''}
+          </td>
+        </tr>
+      `).join("");
+    }
+
+    function addUser() {
+      const name = document.getElementById("new-user-name").value.trim();
+      const username = document.getElementById("new-user-username").value.trim();
+      const password = document.getElementById("new-user-password").value.trim();
+      const role = document.getElementById("new-user-role").value;
+
+      if (!name || !username || !password) {
+        alert("Nama, Username, dan Password wajib diisi!");
+        return;
+      }
+
+      users.push({ id: Date.now(), name, username, password, role });
+      document.getElementById("new-user-name").value = "";
+      document.getElementById("new-user-username").value = "";
+      document.getElementById("new-user-password").value = "";
+      saveDataLocally();
+      renderUsers();
+      alert(`Akun pengguna ${name} berhasil ditambahkan!`);
+    }
+
+    function changeUserPassword(username) {
+      const targetUser = users.find(u => u.username === username);
+      if (!targetUser) return;
+      const newPass = prompt(`Masukkan password baru untuk "${username}":`);
+      if (newPass) {
+        targetUser.password = newPass;
+        saveDataLocally();
+        alert(`Password untuk ${username} berhasil diperbarui!`);
+      }
+    }
+
+    function deleteUser(id) {
+      if (confirm("Hapus akun ini?")) {
+        users = users.filter(u => u.id !== id);
+        saveDataLocally();
+        renderUsers();
+      }
+    }
+
+    function calculatePlantAge(dateStr) {
+      const planted = new Date(dateStr);
+      const now = new Date();
+      const diffTime = Math.abs(now - planted);
+      return `${Math.ceil(diffTime / (1000 * 60 * 60 * 24))} Hari`;
+    }
+
+    // ================= RENDER GRID KATALOG TANAMAN =================
+    function renderPlants(filteredList = null) {
+      const grid = document.getElementById("plants-grid");
+      const list = filteredList || plants;
+      document.getElementById("total-tanaman-info").textContent = `Menampilkan ${list.length} tanaman di kebun sekolah`;
+
+      if (list.length === 0) {
+        grid.innerHTML = `
+          <div class="col-span-full text-center py-12 bg-white rounded-3xl border border-dashed border-slate-200">
+            <i class="fa-solid fa-seedling text-4xl text-slate-300 mb-2"></i>
+            <p class="text-slate-500 text-sm">Tidak ditemukan data tanaman yang sesuai.</p>
+          </div>
+        `;
+        return;
+      }
+
+      grid.innerHTML = list.map(p => {
+        // Tampilkan tombol edit & hapus HANYA jika sudah login (Siswa atau Admin)
+        const canManage = currentUser !== null;
+
+        return `
+          <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden flex flex-col hover:shadow-md transition">
+            <div class="relative h-44 w-full bg-slate-100 overflow-hidden">
+              <img src="${p.photo}" alt="${p.name}" class="w-full h-full object-cover">
+              <span class="absolute top-2 left-2 bg-emerald-950/80 backdrop-blur-md text-white text-[10px] font-semibold px-2 py-0.5 rounded-lg">
+                ${p.location}
+              </span>
+              <span class="absolute top-2 right-2 bg-white/90 text-emerald-800 text-[10px] font-bold px-2 py-0.5 rounded-lg shadow-sm">
+                ${calculatePlantAge(p.date)}
+              </span>
+            </div>
+
+            <div class="p-4 flex-1 flex flex-col justify-between space-y-3">
+              <div>
+                <div class="flex items-start justify-between">
+                  <div>
+                    <h3 class="font-bold text-slate-900 text-base">${p.name}</h3>
+                    <p class="text-xs text-emerald-700 italic font-semibold">${p.latin}</p>
+                  </div>
+                  <span class="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-slate-100 text-slate-600">
+                    ${p.phase}
+                  </span>
+                </div>
+                <p class="text-xs text-slate-500 line-clamp-2 mt-2 leading-relaxed">${p.benefits}</p>
+              </div>
+
+              <div class="pt-2 border-t border-slate-100 flex items-center justify-between gap-1">
+                <button onclick="openDetailModal('${p.id}')" class="flex-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 text-xs font-semibold py-2 px-3 rounded-xl transition text-center">
+                  Lihat Detail
+                </button>
+                
+                ${canManage ? `
+                  <button onclick="openEditPlantModal('${p.id}')" class="p-2 text-slate-500 hover:text-emerald-700 hover:bg-slate-100 rounded-xl transition" title="Ubah Data Tanaman">
+                    <i class="fa-solid fa-pen-to-square text-xs"></i>
+                  </button>
+                  <button onclick="deletePlant('${p.id}')" class="p-2 text-slate-400 hover:text-rose-600 hover:bg-slate-100 rounded-xl transition" title="Hapus Data Tanaman[cite: 2]">
+                    <i class="fa-solid fa-trash text-xs"></i>
+                  </button>
+                ` : ''}
+              </div>
+            </div>
+          </div>
+        `;
+      }).join("");
+    }
+
+    function filterPlants() {
+      const keyword = document.getElementById("search-input").value.toLowerCase();
+      const loc = document.getElementById("filter-location").value;
+      const phase = document.getElementById("filter-phase").value;
+
+      const filtered = plants.filter(p => {
+        const matchKeyword = p.name.toLowerCase().includes(keyword) || 
+                             p.latin.toLowerCase().includes(keyword) || 
+                             p.benefits.toLowerCase().includes(keyword) ||
+                             (p.otherNames && p.otherNames.toLowerCase().includes(keyword));
+        const matchLoc = !loc || p.location === loc;
+        const matchPhase = !phase || p.phase === phase;
+        return matchKeyword && matchLoc && matchPhase;
+      });
+
+      renderPlants(filtered);
+    }
+
+    // ================= DETAIL TANAMAN (TANPA NOMOR) =================
+    function openDetailModal(id) {
+      activeDetailPlantId = id;
+      const plant = plants.find(p => String(p.id) === String(id));
+      if (!plant) return;
+
+      const modalBody = document.getElementById("detail-modal-body");
+      const logs = plant.growthLogs || [];
+
+      // Render bagian formulir pembaruan fase berdasarkan status login
+      let growthUpdateForm = '';
+      if (currentUser) {
+        growthUpdateForm = `
+          <div class="bg-emerald-50/70 border border-emerald-100 rounded-2xl p-4 space-y-3">
+            <h5 class="text-xs font-bold text-emerald-900 flex items-center gap-1.5">
+              <i class="fa-solid fa-camera text-emerald-700"></i> Tambah Foto & Progres Fase Baru (Dicatat oleh: ${currentUser.name})
+            </h5>
+            
+            <form onsubmit="handleGrowthLogSubmit(event)" class="space-y-3">
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <div>
+                  <label class="block text-[11px] font-semibold text-slate-700 mb-1">Fase Tanaman Terkini</label>
+                  <select id="log-phase" required class="w-full text-xs px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white">
+                    <option value="Pembibitan/Semai">Pembibitan/Semai</option>
+                    <option value="Fase Vegetatif">Fase Vegetatif</option>
+                    <option value="Fase Berbunga">Fase Berbunga</option>
+                    <option value="Fase Siap Panen">Fase Siap Panen</option>
+                  </select>
+                </div>
+                <div>
+                  <label class="block text-[11px] font-semibold text-slate-700 mb-1">Ambil Foto (Kamera HP / File)</label>
+                  <input type="file" id="log-photo-file" accept="image/*" capture="environment" required onchange="previewImage(this, 'log-photo-preview')" class="w-full text-xs text-slate-500 file:mr-2 file:py-1 file:px-2 file:rounded-lg file:border-0 file:text-[11px] file:font-semibold file:bg-emerald-700 file:text-white">
+                  <input type="hidden" id="log-photo-base64">
+                </div>
+              </div>
+
+              <div id="log-photo-preview" class="hidden">
+                <img src="" class="h-20 w-24 object-cover rounded-lg border border-slate-200">
+              </div>
+
+              <div>
+                <label class="block text-[11px] font-semibold text-slate-700 mb-1">Catatan Perkembangan Tanaman</label>
+                <textarea id="log-caption" required rows="2" placeholder="Catat perubahan tinggi tanaman, jumlah daun baru, atau kondisi rimpang..." class="w-full text-xs px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white focus:outline-none"></textarea>
+              </div>
+
+              <button type="submit" id="btn-save-log" class="w-full sm:w-auto bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-semibold px-4 py-2 rounded-xl transition">
+                <i class="fa-solid fa-floppy-disk mr-1"></i> Simpan Catatan Fase
+              </button>
+            </form>
+          </div>
+        `;
+      } else {
+        growthUpdateForm = `
+          <div class="bg-slate-50 border border-slate-200 rounded-2xl p-4 text-center space-y-2">
+            <p class="text-xs text-slate-600">Ingin menambahkan foto dokumentasi dan catatan fase tanaman ini?</p>
+            <button onclick="closeDetailModal(); openLoginModal();" class="inline-flex items-center gap-1.5 bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-semibold px-4 py-2 rounded-xl transition shadow-sm">
+              <i class="fa-solid fa-right-to-bracket"></i> Masuk / Login untuk Memperbarui Data
+            </button>
+          </div>
+        `;
+      }
+
+      modalBody.innerHTML = `
+        <div class="flex flex-col sm:flex-row gap-5 items-start">
+          <img src="${plant.photo}" alt="${plant.name}" class="w-full sm:w-48 h-44 object-cover rounded-2xl border border-slate-200">
+          <div class="flex-1 space-y-2">
+            <div class="flex items-start justify-between flex-wrap gap-2">
+              <div>
+                <h2 class="text-xl font-extrabold text-slate-900">${plant.name}</h2>
+                <p class="text-sm font-bold text-emerald-700 italic">${plant.latin}</p>
+                <p class="text-xs text-slate-500">${plant.otherNames ? 'Nama Lain: ' + plant.otherNames : ''}</p>
+              </div>
+              
+              <!-- Tombol Ekspor PDF (Terbuka untuk Umum/Siswa/Admin) -->
+              <button onclick="exportPlantDetailPDF('${plant.id}')" class="inline-flex items-center gap-1.5 bg-rose-600 hover:bg-rose-700 text-white text-xs font-semibold px-3.5 py-2 rounded-xl shadow-sm transition">
+                <i class="fa-solid fa-file-pdf"></i>
+                <span>Export Detail (PDF)</span>
+              </button>
+            </div>
+
+            <!-- Rincian Parameter Tanpa Nomor -->
+            <div class="grid grid-cols-2 gap-2 text-xs pt-2">
+              <div class="bg-slate-50 p-2.5 rounded-xl border border-slate-100">
+                <span class="text-slate-400 block text-[10px]">Lokasi Penanaman:</span>
+                <span class="font-bold text-slate-800">${plant.location}</span>
+              </div>
+              <div class="bg-slate-50 p-2.5 rounded-xl border border-slate-100">
+                <span class="text-slate-400 block text-[10px]">Fase Pertumbuhan:</span>
+                <span class="font-bold text-emerald-700">${plant.phase}</span>
+              </div>
+              <div class="bg-slate-50 p-2.5 rounded-xl border border-slate-100">
+                <span class="text-slate-400 block text-[10px]">Tanggal Penanaman:</span>
+                <span class="font-bold text-slate-800">${plant.date}</span>
+              </div>
+              <div class="bg-slate-50 p-2.5 rounded-xl border border-slate-100">
+                <span class="text-slate-400 block text-[10px]">Usia Tanaman:</span>
+                <span class="font-bold text-slate-800">${calculatePlantAge(plant.date)}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Spesifikasi Karakteristik & Manfaat Tanpa Nomor -->
+        <div class="space-y-3 text-xs bg-slate-50 p-4 rounded-2xl border border-slate-100">
+          <div>
+            <strong class="text-emerald-800 font-bold block mb-0.5"><i class="fa-solid fa-leaf text-emerald-600 mr-1"></i> Karakteristik Tanaman:</strong>
+            <p class="text-slate-600 leading-relaxed">${plant.characteristics}</p>
+          </div>
+          <div>
+            <strong class="text-emerald-800 font-bold block mb-0.5"><i class="fa-solid fa-notes-medical text-emerald-600 mr-1"></i> Manfaat & Khasiat Herbal:</strong>
+            <p class="text-slate-600 leading-relaxed">${plant.benefits}</p>
+          </div>
+          <div>
+            <strong class="text-emerald-800 font-bold block mb-0.5"><i class="fa-solid fa-hand-holding-droplet text-emerald-600 mr-1"></i> Petunjuk Perawatan:</strong>
+            <p class="text-slate-600 leading-relaxed">${plant.care}</p>
+          </div>
+        </div>
+
+        <!-- Jurnal Fase Pertumbuhan Siswa -->
+        <div class="border-t border-slate-100 pt-4 space-y-4">
+          <div>
+            <h4 class="font-bold text-slate-800 text-sm">Dokumentasi & Jurnal Fase Pertumbuhan</h4>
+            <p class="text-[11px] text-slate-500">Riwayat dokumentasi fisik tahapan tumbuh tanaman yang diamati siswa[cite: 2].</p>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            ${logs.length === 0 ? `
+              <div class="col-span-full py-4 text-center bg-slate-50 rounded-xl text-slate-400 text-xs">
+                Belum ada dokumentasi lanjutan.
+              </div>
+            ` : logs.map(l => `
+              <div class="border border-slate-200 rounded-xl p-2.5 bg-white flex gap-3 items-start shadow-xs">
+                <img src="${l.photo}" class="w-16 h-16 rounded-lg object-cover border border-slate-100 flex-shrink-0">
+                <div class="text-xs space-y-1">
+                  <div class="flex items-center gap-1.5 flex-wrap">
+                    <span class="font-bold text-emerald-800 bg-emerald-50 px-1.5 py-0.5 rounded text-[10px]">${l.phase}</span>
+                    <span class="text-[10px] text-slate-400">${l.date}</span>
+                  </div>
+                  <p class="text-slate-600 text-[11px] leading-tight">${l.caption}</p>
+                  <p class="text-[10px] text-slate-400 font-medium">Pencatat: ${l.author}</p>
+                </div>
+              </div>
+            `).join("")}
+          </div>
+
+          ${growthUpdateForm}
+        </div>
+      `;
+
+      document.getElementById("detail-modal").classList.remove("hidden");
+    }
+
+    function closeDetailModal() {
+      document.getElementById("detail-modal").classList.add("hidden");
+      activeDetailPlantId = null;
+    }
+
+    async function handleGrowthLogSubmit(e) {
+      e.preventDefault();
+      if (!currentUser) {
+        alert("Silakan login terlebih dahulu!");
+        openLoginModal();
+        return;
+      }
+
+      const plant = plants.find(p => String(p.id) === String(activeDetailPlantId));
+      if (!plant) return;
+
+      const phase = document.getElementById("log-phase").value;
+      const photo = document.getElementById("log-photo-base64").value;
+      const caption = document.getElementById("log-caption").value.trim();
+
+      if (!photo) {
+        alert("Silakan ambil foto menggunakan kamera atau pilih gambar dokumentasi!");
+        return;
+      }
+
+      const logData = {
+        plantId: plant.id,
+        phase,
+        date: new Date().toISOString().split('T')[0],
+        caption,
+        photo,
+        author: `${currentUser.name} (${currentUser.role})`
+      };
+
+      if (!plant.growthLogs) plant.growthLogs = [];
+      plant.growthLogs.push({ id: Date.now(), ...logData });
+      plant.phase = phase;
+
+      saveDataLocally();
+      renderPlants();
+      openDetailModal(plant.id);
+
+      if (SPREADSHEET_API_URL) {
+        const btn = document.getElementById("btn-save-log");
+        if (btn) btn.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin"></i> Menyimpan...`;
+        try {
+          await fetch(SPREADSHEET_API_URL, {
+            method: "POST",
+            body: JSON.stringify({ action: "addLog", log: logData })
+          });
+        } catch (err) {
+          console.warn("Gagal simpan ke online, tersimpan secara lokal:", err);
+        }
+      }
+
+      alert("Catatan perkembangan fase berhasil disimpan!");
+    }
+
+    // ================= EKSPOR LAPORAN PDF =================
+    function exportPlantDetailPDF(plantId) {
+      const plant = plants.find(p => String(p.id) === String(plantId));
+      if (!plant) return;
+
+      document.getElementById("pdf-name").textContent = plant.name;
+      document.getElementById("pdf-latin").textContent = plant.latin;
+      document.getElementById("pdf-other").textContent = plant.otherNames || "-";
+      document.getElementById("pdf-phase").textContent = plant.phase;
+      document.getElementById("pdf-location").textContent = plant.location;
+      document.getElementById("pdf-date").textContent = `${plant.date} (${calculatePlantAge(plant.date)})`;
+      document.getElementById("pdf-characteristics").textContent = plant.characteristics;
+      document.getElementById("pdf-benefits").textContent = plant.benefits;
+      document.getElementById("pdf-care").textContent = plant.care;
+      document.getElementById("pdf-photo").src = plant.photo;
+
+      const pdfPhaseContainer = document.getElementById("pdf-phase-logs");
+      const logs = plant.growthLogs || [];
+      if (logs.length === 0) {
+        pdfPhaseContainer.innerHTML = `<p style="font-size: 9.5px; color: #64748b;">Belum ada log foto pertumbuhan lanjutan yang ditambahkan.</p>`;
+      } else {
+        pdfPhaseContainer.innerHTML = logs.map(l => `
+          <div style="flex: 1; min-width: 125px; border: 1px solid #e2e8f0; border-radius: 6px; padding: 6px; background: #ffffff;">
+            <img src="${l.photo}" style="width: 100%; height: 70px; object-fit: cover; border-radius: 4px; margin-bottom: 4px;">
+            <div style="font-size: 9px; font-weight: bold; color: #047857;">${l.phase}</div>
+            <div style="font-size: 8px; color: #64748b;">${l.date}</div>
+            <div style="font-size: 8.5px; color: #334155; margin-top: 2px;">${l.caption}</div>
+          </div>
+        `).join("");
+      }
+
+      const element = document.getElementById("pdf-content");
+      const opt = {
+        margin: 10,
+        filename: `Laporan_TOGA_${plant.name.replace(/\s+/g, '_')}_SMKN2Tegalsari.pdf`,
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: { scale: 2, useCORS: true },
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+      };
+
+      html2pdf().set(opt).from(element).save();
+    }
+
+    // ================= CRUD DATA TANAMAN =================
+    function previewImage(input, previewContainerId) {
+      if (input.files && input.files[0]) {
+        const file = input.files[0];
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          const img = new Image();
+          img.onload = function() {
+            const canvas = document.createElement("canvas");
+            const maxDimension = 800;
+            let width = img.width;
+            let height = img.height;
+            if (width > height && width > maxDimension) {
+              height *= maxDimension / width;
+              width = maxDimension;
+            } else if (height > maxDimension) {
+              width *= maxDimension / height;
+              height = maxDimension;
+            }
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext("2d");
+            ctx.drawImage(img, 0, 0, width, height);
+            const compressedBase64 = canvas.toDataURL("image/jpeg", 0.75);
+
+            const container = document.getElementById(previewContainerId);
+            container.classList.remove("hidden");
+            container.querySelector("img").src = compressedBase64;
+            if (previewContainerId === 'form-photo-preview') {
+              document.getElementById("form-photo-base64").value = compressedBase64;
+            } else {
+              document.getElementById("log-photo-base64").value = compressedBase64;
+            }
+          };
+          img.src = e.target.result;
+        };
+        reader.readAsDataURL(file);
+      }
+    }
+
+    function openAddPlantModal() {
+      document.getElementById("form-modal-title").textContent = "Tambah Data Tanaman TOGA";
+      document.getElementById("form-plant-id").value = "";
+      document.getElementById("plant-form").reset();
+      document.getElementById("form-photo-preview").classList.add("hidden");
+      document.getElementById("form-photo-base64").value = "";
+      document.getElementById("form-date").value = new Date().toISOString().split('T')[0];
+      document.getElementById("plant-form-modal").classList.remove("hidden");
+    }
+
+    function openEditPlantModal(id) {
+      if (!currentUser) {
+        alert("Akses Terbatas: Anda harus login untuk mengubah data tanaman[cite: 2]!");
+        openLoginModal();
+        return;
+      }
+
+      const plant = plants.find(p => String(p.id) === String(id));
+      if (!plant) return;
+
+      document.getElementById("form-modal-title").textContent = "Ubah Data Tanaman TOGA";
+      document.getElementById("form-plant-id").value = plant.id;
+      document.getElementById("form-name").value = plant.name;
+      document.getElementById("form-latin").value = plant.latin;
+      document.getElementById("form-other-names").value = plant.otherNames || "";
+      document.getElementById("form-characteristics").value = plant.characteristics;
+      document.getElementById("form-benefits").value = plant.benefits;
+      document.getElementById("form-care").value = plant.care;
+      document.getElementById("form-phase").value = plant.phase;
+      document.getElementById("form-location").value = plant.location;
+      document.getElementById("form-date").value = plant.date;
+
+      const preview = document.getElementById("form-photo-preview");
+      preview.classList.remove("hidden");
+      preview.querySelector("img").src = plant.photo;
+      document.getElementById("form-photo-base64").value = plant.photo;
+
+      document.getElementById("plant-form-modal").classList.remove("hidden");
+    }
+
+    function closePlantFormModal() {
+      document.getElementById("plant-form-modal").classList.add("hidden");
+    }
+
+    async function handlePlantSubmit(e) {
+      e.preventDefault();
+      if (!currentUser) {
+        alert("Sesi login telah berakhir. Silakan login kembali[cite: 2]!");
+        openLoginModal();
+        return;
+      }
+
+      const id = document.getElementById("form-plant-id").value;
+      const photo = document.getElementById("form-photo-base64").value;
+
+      if (!photo) {
+        alert("Foto tanaman wajib diunggah atau difoto langsung menggunakan kamera!");
+        return;
+      }
+
+      const plantData = {
+        name: document.getElementById("form-name").value.trim(),
+        latin: document.getElementById("form-latin").value.trim(),
+        otherNames: document.getElementById("form-other-names").value.trim(),
+        photo: photo,
+        characteristics: document.getElementById("form-characteristics").value.trim(),
+        benefits: document.getElementById("form-benefits").value.trim(),
+        care: document.getElementById("form-care").value.trim(),
+        phase: document.getElementById("form-phase").value,
+        location: document.getElementById("form-location").value,
+        date: document.getElementById("form-date").value
+      };
+
+      const btnSave = document.getElementById("btn-save-plant");
+      btnSave.disabled = true;
+      btnSave.textContent = "Menyimpan...";
+
+      if (id) {
+        const idx = plants.findIndex(p => String(p.id) === String(id));
+        if (idx !== -1) plants[idx] = { ...plants[idx], ...plantData };
+      } else {
+        const newPlant = { id: Date.now(), ...plantData, growthLogs: [] };
+        plants.unshift(newPlant);
+      }
+
+      saveDataLocally();
+      renderPlants();
+      closePlantFormModal();
+
+      if (SPREADSHEET_API_URL) {
+        try {
+          await fetch(SPREADSHEET_API_URL, {
+            method: "POST",
+            body: JSON.stringify({ action: "addPlant", plant: plantData })
+          });
+          loadDataFromSpreadsheet();
+        } catch (err) {
+          console.warn("Gagal sinkron ke spreadsheet:", err);
+        }
+      }
+
+      btnSave.disabled = false;
+      btnSave.textContent = "Simpan Data Tanaman";
+      alert("Data tanaman berhasil disimpan!");
+    }
+
+    function deletePlant(id) {
+      if (!currentUser) {
+        alert("Akses Terbatas: Anda harus login untuk menghapus data tanaman[cite: 2]!");
+        openLoginModal();
+        return;
+      }
+
+      if (confirm("Apakah Anda yakin ingin menghapus data tanaman ini[cite: 2]?")) {
+        plants = plants.filter(p => String(p.id) !== String(id));
+        saveDataLocally();
+        renderPlants();
+      }
+    }
+
+    // ================= PANEL ADMIN =================
+    function openAdminPanelModal() {
+      if (!currentUser || currentUser.role !== "Admin") {
+        alert("Akses ditolak: Menu ini khusus Administrator sekolah[cite: 2]!");
+        return;
+      }
+      document.getElementById("config-api-url").value = SPREADSHEET_API_URL;
+      renderLocationOptions();
+      renderUsers();
+      document.getElementById("admin-modal").classList.remove("hidden");
+    }
+
+    function closeAdminPanelModal() {
+      document.getElementById("admin-modal").classList.add("hidden");
+    }
+
+    // Inisialisasi awal saat halaman dimuat
+    window.addEventListener("DOMContentLoaded", () => {
+      updateAuthUI();
+      loadDataFromSpreadsheet();
+    });
+  </script>
+</body>
+</html>
